@@ -1,0 +1,7 @@
+C:\Users\Cyle\Documents\Visual Studio 2010\Projects\EasyNms\EasyNms\bin\Debug\EasyNms.dll
+C:\Users\Cyle\Documents\Visual Studio 2010\Projects\EasyNms\EasyNms\bin\Debug\EasyNms.pdb
+C:\Users\Cyle\Documents\Visual Studio 2010\Projects\EasyNms\EasyNms\bin\Debug\Apache.NMS.dll
+C:\Users\Cyle\Documents\Visual Studio 2010\Projects\EasyNms\EasyNms\bin\Debug\Apache.NMS.pdb
+C:\Users\Cyle\Documents\Visual Studio 2010\Projects\EasyNms\EasyNms\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\Cyle\Documents\Visual Studio 2010\Projects\EasyNms\EasyNms\obj\Debug\EasyNms.dll
+C:\Users\Cyle\Documents\Visual Studio 2010\Projects\EasyNms\EasyNms\obj\Debug\EasyNms.pdb
