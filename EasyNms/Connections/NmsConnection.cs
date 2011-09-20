@@ -164,6 +164,7 @@ namespace EasyNms.Connections
         /// <returns>A new, initialized ActiveMQMultiConsumer instance.</returns>
         public NmsPooledConsumer CreatePooledConsumer(Destination destination, int consumerCount, Action<IMessage> messageReceivedCallback, string selector = null)
         {
+            this.EnsureIsStarted();
             return new NmsPooledConsumer(this, destination, consumerCount, messageReceivedCallback, selector);
         }
 
@@ -177,21 +178,25 @@ namespace EasyNms.Connections
         /// <returns>A new, initialized ActiveMQMultiConsumer instance.</returns>
         public NmsPooledConsumer CreatePooledConsumer(Destination destination, int consumerCount, Func<MessageFactory, IMessage, IMessage> messageReceivedCallback, string selector = null)
         {
+            this.EnsureIsStarted();
             return new NmsPooledConsumer(this, destination, consumerCount, messageReceivedCallback, selector);
         }
 
         public NmsProducer CreateProducer(Destination destination, MsgDeliveryMode messageDeliveryMode = MsgDeliveryMode.Persistent, bool synchronous = false)
         {
+            this.EnsureIsStarted();
             return new NmsProducer(this, destination, messageDeliveryMode, synchronous);
         }
 
         public NmsConsumer CreateConsumer(Destination destination, Action<IMessage> messageReceivedCallback, string selector = null)
         {
+            this.EnsureIsStarted();
             return new NmsConsumer(this, destination, messageReceivedCallback, selector);
         }
 
         public NmsConsumer CreateConsumer(Destination destination, Func<MessageFactory, IMessage, IMessage> messageReceivedCallback, string selector = null)
         {
+            this.EnsureIsStarted();
             return new NmsConsumer(this, destination, messageReceivedCallback, selector);
         }
 
@@ -210,6 +215,15 @@ namespace EasyNms.Connections
 
         #endregion
         #region Methods [private]
+
+        /// <summary>
+        /// Ensures that the connection has been started, just in-case somebody forgets to call Start(), which is common enough.
+        /// </summary>
+        private void EnsureIsStarted()
+        {
+            if (!this.IsStarted)
+                this.Start();
+        }
 
         /// <summary>
         /// Creates a new connection using the specified connection factory and credentials. 
