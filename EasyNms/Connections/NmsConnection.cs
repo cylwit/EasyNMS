@@ -10,9 +10,13 @@ namespace EasyNms.Connections
 {
     public class NmsConnection :IConnection, IDisposable
     {
+        #region Events
+
         public event EventHandler<ConnectionExceptionEventArgs> ConnectionException;
         public event EventHandler<EventArgs> ConnectionInterrupted;
         public event EventHandler<EventArgs> ConnectionResumed;
+
+        #endregion
 
         #region Fields
 
@@ -254,6 +258,7 @@ namespace EasyNms.Connections
         public void Dispose()
         {
             this.AssertNotDestroyed();
+            this.DetachConnectionEventHandlers();
             this.Destroy();
         }
 
