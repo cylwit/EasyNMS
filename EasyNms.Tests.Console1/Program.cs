@@ -41,6 +41,8 @@ namespace EasyNms.Tests.Console1
 
         #endregion
 
+        static volatile int processedCount;
+
         static void Main(string[] args)
         {
             // Setup and start the connection using a pooled connection.
@@ -48,7 +50,6 @@ namespace EasyNms.Tests.Console1
                 .SessionFactory(new PooledSessionFactory(new PooledSessionFactorySettings() { MinimumSessionsPerConnection = SESSIONS_PER_CONNECTION }))
                 .Start())
             {
-
                 // Create a pooled consumer.
                 connection.CreatePooledConsumer(QUEUE, POOLED_CONSUMER_COUNT, (msg) =>
                     {
@@ -56,6 +57,10 @@ namespace EasyNms.Tests.Console1
                         // see clearly that messages are truly being processed in parallel.
                         Thread.Sleep(3000);
                         Console.WriteLine("[{0:HH:mm:ss.fffff}] Received => {1}", DateTime.Now, ((ITextMessage)msg).Text);
+                        processedCount++;
+
+                        if (processedCount == PARALLEL_PRODUCE_COUNT)
+                            Console.WriteLine("Test run completed! {0}/{1} produced messages consumed.", processedCount, PARALLEL_PRODUCE_COUNT);
                     });
 
 
