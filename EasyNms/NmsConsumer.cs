@@ -26,6 +26,10 @@ namespace EasyNms
 
         #region Constructors
 
+        /// <summary>
+        /// Creates a new NmsConsumer instance (and session) for the given connection.
+        /// </summary>
+        /// <param name="connection">The connection to create the consumer on.</param>
         private NmsConsumer(NmsConnection connection)
         {
             this.connection = connection;

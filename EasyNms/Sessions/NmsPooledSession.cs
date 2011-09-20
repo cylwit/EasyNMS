@@ -6,7 +6,7 @@ using Apache.NMS;
 
 namespace EasyNms.Sessions
 {
-    public class NmsPooledSession : NmsSession, IDisposable
+    class NmsPooledSession : NmsSession, IDisposable
     {
         internal PooledSessionFactory sessionPool;
 

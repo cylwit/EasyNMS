@@ -20,7 +20,14 @@ namespace EasyNms.Sessions
 
         #region Properties
 
+        /// <summary>
+        /// Gets the acknowledgement mode for this session.
+        /// </summary>
         public AcknowledgementMode @AcknowledgementMode { get; private set; }
+
+        /// <summary>
+        /// Gets the underlying ISession.
+        /// </summary>
         public ISession Session
         {
             get { return this.session; }
@@ -30,7 +37,12 @@ namespace EasyNms.Sessions
 
         #region Constructors
 
-        public NmsSession(IConnection connection, ISession session)
+        /// <summary>
+        /// Creates a new NmsSession instance for the given connection and session.
+        /// </summary>
+        /// <param name="connection">The connection to which the session belongs.</param>
+        /// <param name="session">The session which this NmsSession wraps.</param>
+        internal NmsSession(IConnection connection, ISession session)
         {
             this.connection = connection;
             this.session = session;
@@ -42,6 +54,9 @@ namespace EasyNms.Sessions
 
         #region Methods [public] [virtual]
 
+        /// <summary>
+        /// Disposes of the underlying session.
+        /// </summary>
         public virtual void Destroy()
         {
             if (this.session == null)
@@ -69,6 +84,11 @@ namespace EasyNms.Sessions
             return this.temporaryQueue;
         }
 
+        /// <summary>
+        /// Resolves the given destination name into an IDestination.
+        /// </summary>
+        /// <param name="destinationName">The name of the destination.</param>
+        /// <returns>The resolved IDestination.</returns>
         public IDestination GetDestination(string destinationName)
         {
             return this.session.GetDestination(destinationName);
@@ -78,6 +98,9 @@ namespace EasyNms.Sessions
 
         #region IDisposable Members
 
+        /// <summary>
+        /// Disposes of the underlying session.
+        /// </summary>
         public virtual void Dispose()
         {
             this.Destroy();

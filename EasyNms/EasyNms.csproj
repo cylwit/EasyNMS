@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Connections\ConnectionEventArgs.cs" />
     <Compile Include="Connections\ConnectionExceptionEventArgs.cs" />
     <Compile Include="Destination.cs" />
     <Compile Include="Connections\INmsCredentials.cs" />

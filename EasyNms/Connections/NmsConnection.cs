@@ -12,8 +12,17 @@ namespace EasyNms.Connections
     {
         #region Events
 
+        /// <summary>
+        /// Raised when an exception occurs on the connection level.
+        /// </summary>
         public event EventHandler<ConnectionExceptionEventArgs> ConnectionException;
+        /// <summary>
+        /// Raised when the underlying connection is interrupted.
+        /// </summary>
         public event EventHandler<ConnectionEventArgs> ConnectionInterrupted;
+        /// <summary>
+        /// Raised when the underlying connection has resumed.
+        /// </summary>
         public event EventHandler<ConnectionEventArgs> ConnectionResumed;
 
         #endregion
@@ -255,7 +264,7 @@ namespace EasyNms.Connections
         /// <summary>
         /// Destroys this instance, disposing of all underlying and instance resources.
         /// </summary>
-        public void Dispose()
+        public virtual void Dispose()
         {
             this.AssertNotDestroyed();
             this.DetachConnectionEventHandlers();
