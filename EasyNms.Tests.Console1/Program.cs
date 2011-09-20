@@ -12,11 +12,34 @@ namespace EasyNms.Tests.Console1
 {
     class Program
     {
+        #region Constants
+
+        /// <summary>
+        /// The URI of the queue.
+        /// </summary>
         const string URI = "activemq:ssl://localhost:61617?keepAlive=true&transport.acceptInvalidBrokerCert=true";
+
+        /// <summary>
+        /// The queue to publish/subscribe to/from.
+        /// </summary>
         const string QUEUE = "example.A";
+
+        /// <summary>
+        /// How many sessions to create per connection.
+        /// </summary>
         const int SESSIONS_PER_CONNECTION = 500;
-        const int POOLED_CONSUMER_COUNT = 100;
+
+        /// <summary>
+        /// How many consumers to create (read: how many messages can we process at once).
+        /// </summary>
+        const int POOLED_CONSUMER_COUNT = 20;
+
+        /// <summary>
+        /// How many messages to publish in parallel.
+        /// </summary>
         const int PARALLEL_PRODUCE_COUNT = 100;
+
+        #endregion
 
         static void Main(string[] args)
         {
@@ -26,7 +49,7 @@ namespace EasyNms.Tests.Console1
                 .Start())
             {
 
-                // Create a pooled consumer.  We'll set the number of consumers to 10, which means we can process 10 messages at a time.
+                // Create a pooled consumer.
                 connection.CreatePooledConsumer(QUEUE, POOLED_CONSUMER_COUNT, (msg) =>
                     {
                         // This action will be invoked for each received message.  We'll sleep for 3 seconds each message so that we can
