@@ -5,7 +5,7 @@ using System.Text;
 
 namespace EasyNms.Connections
 {
-    public class ConnectionEventArgs : Exception
+    public class ConnectionEventArgs : EventArgs
     {
         public NmsConnection Connection { get; private set; }
 
