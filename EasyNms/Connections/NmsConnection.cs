@@ -8,7 +8,7 @@ using System.Diagnostics;
 
 namespace EasyNms.Connections
 {
-    public class NmsConnection : IDisposable
+    public class NmsConnection :IConnection, IDisposable
     {
         #region Fields
 
@@ -20,17 +20,18 @@ namespace EasyNms.Connections
         #region Properties
 
         /// <summary>
-        /// Gets the underlying IConnection for this instance.
-        /// </summary>
-        public IConnection Connection
-        {
-            get { return this.connection; }
-        }
-
-        /// <summary>
         /// Gets whether or not this instance has been destroyed.
         /// </summary>
         public bool IsDestroyed { get; protected set; }
+
+        /// <summary>
+        /// Gets or sets the client ID for this connection.
+        /// </summary>
+        public string ClientID
+        {
+            get { return this.connection.ClientId; }
+            set { this.connection.ClientId = value; }
+        }
 
         #endregion
 
@@ -211,6 +212,80 @@ namespace EasyNms.Connections
         void connection_ExceptionListener(Exception exception)
         {
             Debug.WriteLine(exception);
+        }
+
+        #endregion
+
+        #region IConnection Members
+
+        public event ConnectionInterruptedListener ConnectionInterruptedListener;
+        public event ConnectionResumedListener ConnectionResumedListener;
+        public event ExceptionListener ExceptionListener;
+
+        public AcknowledgementMode AcknowledgementMode
+        {
+            get { return this.connection.AcknowledgementMode; }
+            set { this.connection.AcknowledgementMode = value; }
+        }
+
+        string IConnection.ClientId
+        {
+            get { return this.connection.ClientId; }
+            set { this.connection.ClientId = value; }
+        }
+
+        public ConsumerTransformerDelegate ConsumerTransformer
+        {
+            get { return this.connection.ConsumerTransformer; }
+            set { this.connection.ConsumerTransformer = value; }
+        }
+
+        public IConnectionMetaData MetaData
+        {
+            get { return this.connection.MetaData; }
+        }
+
+        public ProducerTransformerDelegate ProducerTransformer
+        {
+            get { return this.connection.ProducerTransformer; }
+            set { this.connection.ProducerTransformer = value; }
+        }
+
+        public IRedeliveryPolicy RedeliveryPolicy
+        {
+            get { return this.connection.RedeliveryPolicy; }
+            set { this.connection.RedeliveryPolicy = value; }
+        }
+
+        public TimeSpan RequestTimeout
+        {
+            get { return this.connection.RequestTimeout; }
+            set { this.connection.RequestTimeout = value; }
+        }
+
+        public bool IsStarted
+        {
+            get { return this.connection.IsStarted; }
+        }
+
+        void IConnection.Close()
+        {
+            this.Stop();
+        }
+
+        ISession IConnection.CreateSession(AcknowledgementMode acknowledgementMode)
+        {
+            return this.sessionFactory.CreateSession(acknowledgementMode).Session;
+        }
+
+        ISession IConnection.CreateSession()
+        {
+            return this.sessionFactory.CreateSession().Session;
+        }
+
+        void IStartable.Start()
+        {
+            this.Start();
         }
 
         #endregion
