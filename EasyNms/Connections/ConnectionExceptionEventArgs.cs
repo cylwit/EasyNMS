@@ -5,11 +5,12 @@ using System.Text;
 
 namespace EasyNms.Connections
 {
-    public class ConnectionExceptionEventArgs : EventArgs
+    public class ConnectionExceptionEventArgs : ConnectionEventArgs
     {
         public Exception @Exception { get; private set; }
 
-        public ConnectionExceptionEventArgs(Exception ex)
+        public ConnectionExceptionEventArgs(NmsConnection connection, Exception ex)
+            : base(connection)
         {
             this.Exception = ex;
         }

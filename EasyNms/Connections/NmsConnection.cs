@@ -8,13 +8,13 @@ using System.Diagnostics;
 
 namespace EasyNms.Connections
 {
-    public class NmsConnection :IConnection, IDisposable
+    public class NmsConnection : IConnection, IDisposable
     {
         #region Events
 
         public event EventHandler<ConnectionExceptionEventArgs> ConnectionException;
-        public event EventHandler<EventArgs> ConnectionInterrupted;
-        public event EventHandler<EventArgs> ConnectionResumed;
+        public event EventHandler<ConnectionEventArgs> ConnectionInterrupted;
+        public event EventHandler<ConnectionEventArgs> ConnectionResumed;
 
         #endregion
 
@@ -275,7 +275,7 @@ namespace EasyNms.Connections
             if (this.exceptionListener != null)
                 this.exceptionListener(exception);
             if (this.ConnectionException != null)
-                this.ConnectionException(this, new ConnectionExceptionEventArgs(exception));
+                this.ConnectionException(this, new ConnectionExceptionEventArgs(this, exception));
         }
 
         void connection_ConnectionResumedListener()
@@ -283,7 +283,7 @@ namespace EasyNms.Connections
             if (this.connectionResumedListener != null)
                 this.connectionResumedListener();
             if (this.ConnectionResumed != null)
-                this.ConnectionResumed(this, new EventArgs());
+                this.ConnectionResumed(this, new ConnectionEventArgs(this));
         }
 
         void connection_ConnectionInterruptedListener()
@@ -291,7 +291,7 @@ namespace EasyNms.Connections
             if (this.connectionInterruptedListener != null)
                 this.connectionInterruptedListener();
             if (this.ConnectionInterrupted != null)
-                this.ConnectionInterrupted(this, new EventArgs());
+                this.ConnectionInterrupted(this, new ConnectionEventArgs(this));
         }
 
         #endregion
