@@ -10,6 +10,10 @@ namespace EasyNms.Connections
 {
     public class NmsConnection :IConnection, IDisposable
     {
+        public event EventHandler<ConnectionExceptionEventArgs> ConnectionException;
+        public event EventHandler<EventArgs> ConnectionInterrupted;
+        public event EventHandler<EventArgs> ConnectionResumed;
+
         #region Fields
 
         private SessionFactory sessionFactory;
@@ -38,31 +42,45 @@ namespace EasyNms.Connections
         #region Constructors
 
         /// <summary>
-        /// Creates a new ActiveMQConnection instance with the specified underlying IConnection and optionally specifying the default acknowledgement
-        /// mode for new sessions.
+        /// Creates a new NmsConnection instance with the specified underlying IConnection.
         /// </summary>
-        /// <param name="connection">The IConnection instance which this ActiveMQConnection should wrap.</param>
-        /// <param name="acknowledgementMode">Optionally specify the default acknowledgement mode for new sessions.</param>
+        /// <param name="connection">The IConnection instance which this NmsConnection should wrap.</param>
         internal NmsConnection(IConnection connection)
         {
+            if (connection == null)
+                throw new ArgumentNullException("connection");
+
             this.connection = connection;
+            this.AttachConnectionEventHandlers();
         }
 
-        public NmsConnection(IConnectionFactory connectionFactory, NmsCredentials credentials = null)
+        /// <summary>
+        /// Creates a new NmsConnection using the specified IConnectionFactory, optionally providing credentials.
+        /// </summary>
+        /// <param name="connectionFactory">The IConnectionFactory to use to create the connection.</param>
+        /// <param name="credentials">The connection credentials to use to connect to the NMS broker.</param>
+        public NmsConnection(IConnectionFactory connectionFactory, INmsCredentials credentials = null)
         {
-            this.connection = (credentials == null)
-                ? connectionFactory.CreateConnection()
-                : connectionFactory.CreateConnection(credentials.Username, credentials.Password);
-            this.connection.ExceptionListener += new ExceptionListener(connection_ExceptionListener);
+            if (connectionFactory == null)
+                throw new ArgumentNullException("connectionFactory");
+
+            this.CreateConnection(connectionFactory, credentials);
         }
 
-        public NmsConnection(Uri uri, NmsCredentials credentials = null, params object[] connectionFactoryConstructorParameters)
+        /// <summary>
+        /// Creates a new NmsConnection using the specified URI, optionally providing credentials.  This constructor uses Apache.NMS.NMSConnectionFactory.CreateConnectionFactory()
+        /// to resolve the appropriate connection factory.
+        /// </summary>
+        /// <param name="uri">The NMS URI of the broker.</param>
+        /// <param name="credentials">The connection credentials to use to connect to the NMS broker.</param>
+        /// <param name="connectionFactoryConstructorParameters">Any additional arguments which need to be passed to the connection factory constructor.</param>
+        public NmsConnection(Uri uri, INmsCredentials credentials = null, params object[] connectionFactoryConstructorParameters)
         {
+            if (uri == null)
+                throw new ArgumentNullException("uri");
+
             var factory = NMSConnectionFactory.CreateConnectionFactory(uri, connectionFactoryConstructorParameters);
-            this.connection = (credentials == null)
-                ? factory.CreateConnection()
-                : factory.CreateConnection(credentials.Username, credentials.Password);
-            this.connection.ExceptionListener += new ExceptionListener(connection_ExceptionListener);
+            this.CreateConnection(factory, credentials);
         }
 
         #endregion
@@ -181,6 +199,40 @@ namespace EasyNms.Connections
         #region Methods [private]
 
         /// <summary>
+        /// Creates a new connection using the specified connection factory and credentials. 
+        /// </summary>
+        /// <param name="factory">The connection factory to use to create the connection.</param>
+        /// <param name="credentials">The credentials to use to connect to the NMS broker.</param>
+        private void CreateConnection(IConnectionFactory factory, INmsCredentials credentials)
+        {
+            this.connection = (credentials == null)
+                ? factory.CreateConnection()
+                : factory.CreateConnection(credentials.Username, credentials.Password);
+
+            this.AttachConnectionEventHandlers();
+        }
+
+        /// <summary>
+        /// Attaches event handlers to IConnection's events.
+        /// </summary>
+        private void AttachConnectionEventHandlers()
+        {
+            this.connection.ExceptionListener += new ExceptionListener(connection_ExceptionListener);
+            this.connection.ConnectionInterruptedListener += new ConnectionInterruptedListener(connection_ConnectionInterruptedListener);
+            this.connection.ConnectionResumedListener += new ConnectionResumedListener(connection_ConnectionResumedListener);
+        }
+
+        /// <summary>
+        /// Detaches event handlers from IConnection's events.
+        /// </summary>
+        private void DetachConnectionEventHandlers()
+        {
+            this.connection.ExceptionListener -= new ExceptionListener(connection_ExceptionListener);
+            this.connection.ConnectionInterruptedListener -= new ConnectionInterruptedListener(connection_ConnectionInterruptedListener);
+            this.connection.ConnectionResumedListener -= new ConnectionResumedListener(connection_ConnectionResumedListener);
+        }
+
+        /// <summary>
         /// Asserts that this instance has not been destroyed/disposed.
         /// </summary>
         private void AssertNotDestroyed()
@@ -209,18 +261,59 @@ namespace EasyNms.Connections
 
         #region Event Handlers
 
+        // I feel that it's important to receive the sender in this type of events in-case you're managing multiple connections
+        // with the same event handler; that is why the events are wrapped here and the IConnection events are only exposed via
+        // the interface.
+
         void connection_ExceptionListener(Exception exception)
         {
-            Debug.WriteLine(exception);
+            if (this.exceptionListener != null)
+                this.exceptionListener(exception);
+            if (this.ConnectionException != null)
+                this.ConnectionException(this, new ConnectionExceptionEventArgs(exception));
+        }
+
+        void connection_ConnectionResumedListener()
+        {
+            if (this.connectionResumedListener != null)
+                this.connectionResumedListener();
+            if (this.ConnectionResumed != null)
+                this.ConnectionResumed(this, new EventArgs());
+        }
+
+        void connection_ConnectionInterruptedListener()
+        {
+            if (this.connectionInterruptedListener != null)
+                this.connectionInterruptedListener();
+            if (this.ConnectionInterrupted != null)
+                this.ConnectionInterrupted(this, new EventArgs());
         }
 
         #endregion
 
         #region IConnection Members
 
-        public event ConnectionInterruptedListener ConnectionInterruptedListener;
-        public event ConnectionResumedListener ConnectionResumedListener;
-        public event ExceptionListener ExceptionListener;
+        private ConnectionInterruptedListener connectionInterruptedListener;
+        private ConnectionResumedListener connectionResumedListener;
+        private ExceptionListener exceptionListener;
+
+        event ConnectionInterruptedListener IConnection.ConnectionInterruptedListener
+        {
+            add { connectionInterruptedListener += value; }
+            remove { connectionInterruptedListener -= value; }
+        }
+
+        event ConnectionResumedListener IConnection.ConnectionResumedListener
+        {
+            add { connectionResumedListener += value; }
+            remove { connectionResumedListener -= value; }
+        }
+
+        event ExceptionListener IConnection.ExceptionListener
+        {
+            add { exceptionListener += value; }
+            remove { exceptionListener -= value; }
+        }
 
         public AcknowledgementMode AcknowledgementMode
         {
