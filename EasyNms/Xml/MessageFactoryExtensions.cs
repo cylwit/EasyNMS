@@ -22,20 +22,5 @@ namespace EasyNms.Xml
             message.NMSType = Constants.XmlHeader + o.GetType().AssemblyQualifiedName;
             return message;
         }
-
-        public static object DeserializeXmlMessage(this MessageFactory messageFactory, ITextMessage message)
-        {
-            return message.XmlDeserialize();
-        }
-
-        public static T DeserializeXmlMessage<T>(this MessageFactory messageFactory, ITextMessage message)
-        {
-            return message.XmlDeserializeAs<T>();
-        }
-
-        public static bool IsXmlMessage(this MessageFactory messageFactory, ITextMessage message)
-        {
-            return message.IsXmlMessage();
-        }
     }
 }
