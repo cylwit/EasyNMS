@@ -22,5 +22,12 @@ namespace EasyNms
                 ? this.session.Session.CreateTextMessage()
                 : this.session.Session.CreateTextMessage(text);
         }
+
+        public IBytesMessage CreateBytesMessage(byte[] body = null)
+        {
+            return (body == null)
+                ? this.session.Session.CreateBytesMessage()
+                : this.session.Session.CreateBytesMessage(body);
+        }
     }
 }
