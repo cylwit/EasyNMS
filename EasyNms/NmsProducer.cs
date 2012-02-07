@@ -2,26 +2,33 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using Apache.NMS;
-using EasyNms.Connections;
-using EasyNms.Sessions;
+using System.Threading;
 
 namespace EasyNms
 {
     public class NmsProducer : IDisposable
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+        private static volatile int idCounter;
+
         #region Fields
 
         private IMessageProducer producer;
         private Dictionary<string, AsyncMessageHelper> responseBuffer;
-        private NmsSession session;
-        private NmsConnection connection;
+        private INmsSession session;
+        private INmsConnection connection;
         private ITemporaryQueue temporaryQueue;
         private IMessageConsumer responseConsumer;
         private bool isInitializedForSynchronous;
         private IDestination destination;
         private MessageFactory messageFactory;
+        private bool isSynchronous;
+        private int id;
+        private bool isInitialized;
+        private MsgDeliveryMode deliveryMode;
+        private Destination innerDestination;
+        private AutoResetEvent asr = new AutoResetEvent(false);
 
         #endregion
 
@@ -42,22 +49,22 @@ namespace EasyNms
 
         #region Constructors
 
-        private NmsProducer(NmsConnection connection)
+        private NmsProducer()
         {
-            this.connection = connection;
-            this.session = connection.CreateSession();
-            this.messageFactory = new MessageFactory(this.session);
+            this.id = idCounter++;
         }
 
-        internal NmsProducer(NmsConnection connection, Destination destination, MsgDeliveryMode deliveryMode = MsgDeliveryMode.Persistent, bool synchronous = false)
-            : this(connection)
+        private NmsProducer(INmsConnection connection)
+            : this()
         {
-            this.destination = destination.GetDestination(this.session);
-            this.producer = this.session.Session.CreateProducer(this.destination);
-            this.producer.DeliveryMode = deliveryMode;
+            this.Setup(connection, MsgDeliveryMode.Persistent, false);
+        }
 
-            if (synchronous)
-                this.InitializeForSynchronous();
+        internal NmsProducer(INmsConnection connection, Destination destination, MsgDeliveryMode deliveryMode = MsgDeliveryMode.Persistent, bool synchronous = false)
+            : this()
+        {
+            this.innerDestination = destination;
+            this.Setup(connection, deliveryMode, synchronous);
         }
 
         #endregion
@@ -81,11 +88,23 @@ namespace EasyNms
 
         public void SendRequest(Destination destination, IMessage message, MsgDeliveryMode deliveryMode, MsgPriority messagePriority, TimeSpan timeToLive)
         {
+            if (!this.isInitialized)
+                this.asr.WaitOne(10000);
+
             this.producer.Send(destination.GetDestination(this.session), message, deliveryMode, messagePriority, timeToLive);
         }
 
         public IMessage SendRequestResponse(IMessage message, int timeoutInMilliseconds = 15000)
         {
+            var now = DateTime.Now;
+            if (!this.isInitialized)
+            {
+                this.asr.WaitOne(timeoutInMilliseconds);
+                if (!this.isInitialized)
+                    throw new TimeoutException("Could not send the message because no connections were available within the specified timeout period.");
+            }
+            
+
             this.InitializeForSynchronous();
 
             // Create a unique correlation ID which we will use to map response messages to request messages.
@@ -105,8 +124,13 @@ namespace EasyNms
                 // Send the message to the queue.
                 this.producer.Send(message);
 
+                // Calculate the remaining timeout time since we may have had to wait.
+                int remainingTime = (int)((DateTime.Now - now).TotalMilliseconds);
+                remainingTime = timeoutInMilliseconds - remainingTime;
+                remainingTime = (remainingTime < 0) ? 0 : remainingTime;
+
                 // Wait for a response for up to [timeout] seconds.  This blocks until the timeout expires or a message is received (.Set() is called on the trigger then, allowing execution to continue).
-                asyncMessageHelper.Trigger.WaitOne(timeoutInMilliseconds, true);
+                asyncMessageHelper.Trigger.WaitOne(remainingTime, true);
 
                 // Either the timeout has expired, or a message was received with the same correlation ID as the request message.
                 IMessage responseMessage;
@@ -134,6 +158,35 @@ namespace EasyNms
         #endregion
         #region Methods [private]
 
+        private void Setup(INmsConnection connection, MsgDeliveryMode deliveryMode, bool synchronous)
+        {
+            this.isSynchronous = synchronous;
+            this.deliveryMode = deliveryMode;
+            this.connection = connection;
+            this.session = connection.GetSession();
+            this.messageFactory = new MessageFactory(this.session.InnerSession);
+            this.connection.ConnectionInterrupted += new EventHandler<NmsConnectionEventArgs>(connection_ConnectionInterrupted);
+            this.connection.ConnectionResumed += new EventHandler<NmsConnectionEventArgs>(connection_ConnectionResumed);
+
+            if (this.innerDestination == null)
+            {
+                this.producer = this.session.CreateProducer();
+            }
+            else
+            {
+                this.destination = this.innerDestination.GetDestination(this.session);
+                this.producer = this.session.CreateProducer(this.destination);
+            }
+
+            this.producer.DeliveryMode = deliveryMode;
+
+            if (synchronous)
+                this.InitializeForSynchronous();
+
+            this.isInitialized = true;
+            this.asr.Set();
+        }
+
         /// <summary>
         /// Sets up the response buffer, temporary queue, response consumer and listener delegates for sending and receiving synchronous messages.
         /// </summary>
@@ -145,10 +198,11 @@ namespace EasyNms
                     return;
 
                 this.responseBuffer = new Dictionary<string, AsyncMessageHelper>();
-                this.temporaryQueue = this.session.CreateTemporaryQueue(useCachedQueue: true);
-                this.responseConsumer = this.session.Session.CreateConsumer(this.temporaryQueue);
+                this.temporaryQueue = this.session.GetTemporaryQueue();
+                this.responseConsumer = this.session.CreateConsumer(this.temporaryQueue);
                 this.responseConsumer.Listener += new MessageListener(responseConsumer_Listener);
                 this.isInitializedForSynchronous = true;
+                this.isSynchronous = true;
             }
         }
 
@@ -176,6 +230,49 @@ namespace EasyNms
 
             // Fire the trigger so that the send method stops blocking and continues on its way.
             asyncMessageHelper.Trigger.Set();
+        }
+
+        void connection_ConnectionResumed(object sender, NmsConnectionEventArgs e)
+        {
+            lock (this)
+            {
+                if (this.isInitialized)
+                    return;
+
+                log.Info("[{0}] Resuming producer #{1} on this connection.", e.Connection.ID, this.id);
+
+                this.connection = (INmsConnection)sender;
+                this.Setup(this.connection, this.deliveryMode, this.isSynchronous);
+            }
+        }
+
+        void connection_ConnectionInterrupted(object sender, NmsConnectionEventArgs e)
+        {
+            lock (this)
+            {
+                if (this.connection != sender)
+                    return;
+
+                this.isInitialized = false;
+                this.isInitializedForSynchronous = false;
+                this.asr.Reset();
+
+                log.Warn("[{0}] Producer #{1}'s connection was lost.  Attempting to recreate.", e.Connection.ID, this.id);
+
+                this.producer.Dispose();
+                this.producer = null;
+                this.session.Dispose();
+                this.session = null;
+
+                try
+                {
+                    this.Setup(this.connection, this.deliveryMode, this.isSynchronous);
+                }
+                catch (Exception ex)
+                {
+                    log.Warn("[{0}] Failed to recreate producer using this connection ({1}).  Waiting for resume condition to restart.", e.Connection.ID, ex.Message);
+                }
+            }
         }
 
         #endregion
@@ -226,11 +323,16 @@ namespace EasyNms
                     this.responseConsumer = null;
                 }
 
+                this.connection.ConnectionInterrupted -= new EventHandler<NmsConnectionEventArgs>(connection_ConnectionInterrupted);
+                this.connection.ConnectionResumed -= new EventHandler<NmsConnectionEventArgs>(connection_ConnectionResumed);
+
                 this.session.Dispose();
                 this.session = null;
                 this.messageFactory = null;
                 this.connection = null;
                 this.destination = null;
+                this.asr.Close();
+                this.asr = null;
             }
         }
 

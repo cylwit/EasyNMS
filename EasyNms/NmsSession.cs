@@ -4,66 +4,59 @@ using System.Linq;
 using System.Text;
 using Apache.NMS;
 
-namespace EasyNms.Sessions
+namespace EasyNms
 {
-    public class NmsSession : IDisposable
+    public class NmsSession : IDisposable, INmsSession
     {
+        private static NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
         #region Fields
 
         private IConnection connection;
         private ISession session;
         private ITemporaryQueue temporaryQueue;
 
-        internal MessageFactory messageFactory;
-
         #endregion
 
         #region Properties
 
-        /// <summary>
-        /// Gets the acknowledgement mode for this session.
-        /// </summary>
         public AcknowledgementMode @AcknowledgementMode { get; private set; }
-
-        /// <summary>
-        /// Gets the underlying ISession.
-        /// </summary>
         public ISession Session
         {
             get { return this.session; }
         }
+        public MessageFactory @MessageFactory { get; private set; }
+        public ISession InnerSession { get; private set; }
 
         #endregion
 
         #region Constructors
 
-        /// <summary>
-        /// Creates a new NmsSession instance for the given connection and session.
-        /// </summary>
-        /// <param name="connection">The connection to which the session belongs.</param>
-        /// <param name="session">The session which this NmsSession wraps.</param>
-        internal NmsSession(IConnection connection, ISession session)
+        public NmsSession(IConnection connection, ISession session)
         {
             this.connection = connection;
             this.session = session;
             this.AcknowledgementMode = session.AcknowledgementMode;
-            this.messageFactory = new MessageFactory(this);
+            this.InnerSession = session;
+            this.MessageFactory = new MessageFactory(session);
         }
 
         #endregion
 
         #region Methods [public] [virtual]
 
-        /// <summary>
-        /// Disposes of the underlying session.
-        /// </summary>
         public virtual void Destroy()
         {
             if (this.session == null)
                 return;
 
+            if (this.temporaryQueue != null)
+                this.temporaryQueue.Delete();
+            this.temporaryQueue = null;
             this.session.Dispose();
             this.session = null;
+
+            this.connection = null;
         }
 
         #endregion
@@ -75,6 +68,7 @@ namespace EasyNms.Sessions
         /// <param name="useCachedQueue">Whether or not to use a previously-created temporary queue for this session.  If no temporary queue has
         /// been created then a new temporary queue will be created and cached.</param>
         /// <returns>The resulting ITemporaryQueue destination.</returns>
+        [Obsolete("Use GetTemporaryQueue() instead.")]
         public ITemporaryQueue CreateTemporaryQueue(bool useCachedQueue = true)
         {
             if (useCachedQueue && this.temporaryQueue != null)
@@ -84,11 +78,6 @@ namespace EasyNms.Sessions
             return this.temporaryQueue;
         }
 
-        /// <summary>
-        /// Resolves the given destination name into an IDestination.
-        /// </summary>
-        /// <param name="destinationName">The name of the destination.</param>
-        /// <returns>The resolved IDestination.</returns>
         public IDestination GetDestination(string destinationName)
         {
             return this.session.GetDestination(destinationName);
@@ -98,12 +87,42 @@ namespace EasyNms.Sessions
 
         #region IDisposable Members
 
-        /// <summary>
-        /// Disposes of the underlying session.
-        /// </summary>
-        public virtual void Dispose()
+        public void Dispose()
         {
             this.Destroy();
+        }
+
+        #endregion
+
+        #region INmsSession Members
+
+        public ITemporaryQueue GetTemporaryQueue()
+        {
+            if (this.temporaryQueue != null)
+                return this.temporaryQueue;
+
+            this.temporaryQueue = this.session.CreateTemporaryQueue();
+            return this.temporaryQueue;
+        }
+
+        public IMessageConsumer CreateConsumer(IDestination destination)
+        {
+            return this.session.CreateConsumer(destination);
+        }
+
+        public IMessageConsumer CreateConsumer(IDestination destination, string selector)
+        {
+            return this.session.CreateConsumer(destination, selector);
+        }
+
+        public IMessageProducer CreateProducer()
+        {
+            return this.session.CreateProducer();
+        }
+
+        public IMessageProducer CreateProducer(IDestination destination)
+        {
+            return this.session.CreateProducer(destination);
         }
 
         #endregion

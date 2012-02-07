@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Apache.NMS;
-using EasyNms.Sessions;
 
 namespace EasyNms
 {
@@ -34,7 +33,7 @@ namespace EasyNms
             this.destinationType = DestinationType.DestinationName;
         }
 
-        internal IDestination GetDestination(NmsSession session)
+        internal IDestination GetDestination(INmsSession session)
         {
             switch (this.destinationType)
             {
@@ -47,6 +46,19 @@ namespace EasyNms
         public static implicit operator Destination(string destinationName)
         {
             return new Destination(destinationName);
+        }
+
+        public override string ToString()
+        {
+            switch (this.destinationType)
+            {
+                case DestinationType.Destination:
+                    return this.destination.ToString();
+                case DestinationType.DestinationName:
+                    return this.destinationName;
+                default:
+                    return null;
+            }
         }
     }
 }

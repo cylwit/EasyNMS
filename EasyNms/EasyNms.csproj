@@ -35,7 +35,9 @@
     <Reference Include="Apache.NMS">
       <HintPath>..\Lib\Apache.NMS\Apache.NMS.dll</HintPath>
     </Reference>
+    <Reference Include="NLog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL" />
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -43,25 +45,35 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Connections\ConnectionEventArgs.cs" />
-    <Compile Include="Connections\ConnectionExceptionEventArgs.cs" />
+    <Compile Include="Configuration\ConnectionPoolElement.cs" />
+    <Compile Include="Configuration\CredentialsElement.cs" />
+    <Compile Include="Configuration\EndPointElement.cs" />
+    <Compile Include="Configuration\EndPointElementCollection.cs" />
+    <Compile Include="Configuration\EndPointManagerElement.cs" />
+    <Compile Include="Configuration\EasyNmsSection.cs" />
+    <Compile Include="Configuration\PropertyElement.cs" />
+    <Compile Include="Configuration\PropertyElementCollection.cs" />
     <Compile Include="Destination.cs" />
-    <Compile Include="Connections\INmsCredentials.cs" />
     <Compile Include="DestinationType.cs" />
-    <Compile Include="INmsConsumer.cs" />
+    <Compile Include="EndPoints\INmsEndPointManager.cs" />
+    <Compile Include="EndPoints\NmsEndPoint.cs" />
+    <Compile Include="EndPoints\RoundRobinNmsEndPointManager.cs" />
+    <Compile Include="INmsConnection.cs" />
+    <Compile Include="INmsSession.cs" />
     <Compile Include="MessageFactory.cs" />
+    <Compile Include="NmsConnection.cs" />
+    <Compile Include="NmsConnectionEventArgs.cs" />
+    <Compile Include="NmsConnectionPool.cs" />
+    <Compile Include="NmsConnectionPoolSettings.cs" />
     <Compile Include="NmsConsumer.cs" />
-    <Compile Include="NmsPooledConsumer.cs" />
+    <Compile Include="NmsCredentials.cs" />
+    <Compile Include="NmsMultiConsumer.cs" />
+    <Compile Include="NmsPooledConnection.cs" />
+    <Compile Include="NmsPooledSession.cs" />
     <Compile Include="NmsProducer.cs" />
-    <Compile Include="Sessions\NmsPooledSession.cs" />
-    <Compile Include="Sessions\PooledSessionFactory.cs" />
-    <Compile Include="Sessions\PooledSessionFactorySettings.cs" />
-    <Compile Include="Sessions\SessionFactory.cs" />
-    <Compile Include="Connections\NmsConnection.cs" />
-    <Compile Include="Connections\NmsCredentials.cs" />
-    <Compile Include="Sessions\NmsSession.cs" />
+    <Compile Include="NmsSession.cs" />
+    <Compile Include="NmsSessionPool.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Sessions\StandardSessionFactory.cs" />
     <Compile Include="Xml\Constants.cs" />
     <Compile Include="Xml\ITextMessageExtensions.cs" />
     <Compile Include="Xml\MessageFactoryExtensions.cs" />

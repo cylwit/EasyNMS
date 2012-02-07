@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace EasyNms.Connections
+namespace EasyNms
 {
-    public class NmsCredentials : INmsCredentials
+    public class NmsCredentials
     {
-        public string Username { get; private set; }
-        public string Password { get; private set; }
+        public string Username { get; set; }
+        public string Password { get; set; }
 
         public NmsCredentials(string username, string password)
         {

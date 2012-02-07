@@ -2,32 +2,27 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using EasyNms.Sessions;
 using Apache.NMS;
 
 namespace EasyNms
 {
     public class MessageFactory
     {
-        internal NmsSession session;
+        internal ISession session;
 
-        internal MessageFactory(NmsSession session)
+        internal MessageFactory(ISession session)
         {
             this.session = session;
         }
 
-        public ITextMessage CreateTextMessage(string text = null)
+        public ITextMessage CreateTextMessage()
         {
-            return (text == null)
-                ? this.session.Session.CreateTextMessage()
-                : this.session.Session.CreateTextMessage(text);
+            return this.session.CreateTextMessage();
         }
 
-        public IBytesMessage CreateBytesMessage(byte[] body = null)
+        public ITextMessage CreateTextMessage(string text)
         {
-            return (body == null)
-                ? this.session.Session.CreateBytesMessage()
-                : this.session.Session.CreateBytesMessage(body);
+            return this.session.CreateTextMessage(text);
         }
     }
 }

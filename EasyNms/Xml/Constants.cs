@@ -8,6 +8,5 @@ namespace EasyNms.Xml
     public static class Constants
     {
         internal const string XmlHeader = "XML/";
-        internal const int DefaultTimeoutMilliseconds = 15000;
     }
 }
